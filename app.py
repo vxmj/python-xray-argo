@@ -12,27 +12,22 @@ import threading
 from threading import Thread
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-# Environment variables
-UPLOAD_URL = os.environ.get('UPLOAD_URL', '')          # 节点或订阅上传地址,只填写这个地址将上传节点,同时填写PROJECT_URL将上传订阅，例如：https://merge.serv00.net
-PROJECT_URL = os.environ.get('PROJECT_URL', '')        # 项目url,需要自动保活或自动上传订阅需要填写,例如：https://www.google.com,
-AUTO_ACCESS = os.environ.get('AUTO_ACCESS', 'false').lower() == 'true'  # false关闭自动保活, true开启自动保活，默认关闭
-FILE_PATH = os.environ.get('FILE_PATH', './.cache')    # 运行路径,sub.txt保存路径
-SUB_PATH = os.environ.get('SUB_PATH', 'sub')           # 订阅token,默认sub，例如：https://www.google.com/sub
-UUID = os.environ.get('UUID', '20e6e496-cf19-45c8-b883-14f5e11cd9f1')  # UUID,如使用哪吒v1,在不同的平台部署需要修改,否则会覆盖
-NEZHA_SERVER = os.environ.get('NEZHA_SERVER', '')      # 哪吒面板域名或ip, v1格式: nezha.xxx.com:8008, v0格式: nezha.xxx.com
-NEZHA_PORT = os.environ.get('NEZHA_PORT', '')          # v1哪吒请留空, v0哪吒的agent通信端口,自动匹配tls
-NEZHA_KEY = os.environ.get('NEZHA_KEY', '')            # v1哪吒的NZ_CLIENT_SECRET或v0哪吒agent密钥
-ARGO_DOMAIN = os.environ.get('ARGO_DOMAIN', '')        # Argo固定隧道域名,留空即使用临时隧道
-ARGO_AUTH = os.environ.get('ARGO_AUTH', '')            # Argo固定隧道密钥,留空即使用临时隧道
-ARGO_PORT = int(os.environ.get('ARGO_PORT', '8001'))   # Argo端口,使用固定隧道token需在cloudflare后台设置端口和这里一致
-CFIP = os.environ.get('CFIP', 'www.visa.com.tw')       # 优选ip或优选域名
-CFPORT = int(os.environ.get('CFPORT', '443'))          # 优选ip或优选域名对应端口
-NAME = os.environ.get('NAME', 'Vls')                   # 节点名称
-CHAT_ID = os.environ.get('CHAT_ID', '')                # Telegram chat_id,推送节点到tg,两个变量同时填写才会推送
-BOT_TOKEN = os.environ.get('BOT_TOKEN', '')            # Telegram bot_token
-PORT = int(os.environ.get('SERVER_PORT') or os.environ.get('PORT') or 3000) # 订阅端口，如无法订阅，请手动修改为分配的端口
+UPLOAD_URL = os.environ.get('UPLOAD_URL', '')
+PROJECT_URL = os.environ.get('PROJECT_URL', '')
+AUTO_ACCESS = os.environ.get('AUTO_ACCESS', 'false').lower() == 'true'
+FILE_PATH = os.environ.get('FILE_PATH', './.cache')
+SUB_PATH = os.environ.get('SUB_PATH', '')
+UUID = os.environ.get('UUID', '')
+ARGO_DOMAIN = os.environ.get('ARGO_DOMAIN', '')
+ARGO_AUTH = os.environ.get('ARGO_AUTH', '')
+ARGO_PORT = int(os.environ.get('ARGO_PORT', '8001'))
+CFIP = os.environ.get('CFIP', 'www.visa.com.tw')
+CFPORT = int(os.environ.get('CFPORT', '443'))
+NAME = os.environ.get('NAME', 'Vls')
+CHAT_ID = os.environ.get('CHAT_ID', '')
+BOT_TOKEN = os.environ.get('BOT_TOKEN', '')
+PORT = int(os.environ.get('SERVER_PORT') or os.environ.get('PORT') or 3000)
 
-# Create running folder
 def create_directory():
     print('\033c', end='')
     if not os.path.exists(FILE_PATH):
@@ -41,9 +36,6 @@ def create_directory():
     else:
         print(f"{FILE_PATH} already exists")
 
-# Global variables
-npm_path = os.path.join(FILE_PATH, 'npm')
-php_path = os.path.join(FILE_PATH, 'php')
 web_path = os.path.join(FILE_PATH, 'web')
 bot_path = os.path.join(FILE_PATH, 'bot')
 sub_path = os.path.join(FILE_PATH, 'sub.txt')
@@ -51,7 +43,6 @@ list_path = os.path.join(FILE_PATH, 'list.txt')
 boot_log_path = os.path.join(FILE_PATH, 'boot.log')
 config_path = os.path.join(FILE_PATH, 'config.json')
 
-# Delete nodes
 def delete_nodes():
     try:
         if not UPLOAD_URL:
@@ -82,9 +73,8 @@ def delete_nodes():
         print(f"Error in delete_nodes: {e}")
         return None
 
-# Clean up old files
 def cleanup_old_files():
-    paths_to_delete = ['web', 'bot', 'npm', 'php', 'boot.log', 'list.txt']
+    paths_to_delete = ['web', 'bot', 'boot.log', 'list.txt']
     for file in paths_to_delete:
         file_path = os.path.join(FILE_PATH, file)
         try:
@@ -122,7 +112,6 @@ class RequestHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
     
-# Determine system architecture
 def get_system_architecture():
     architecture = platform.machine().lower()
     if 'arm' in architecture or 'aarch64' in architecture:
@@ -130,7 +119,6 @@ def get_system_architecture():
     else:
         return 'amd'
 
-# Download file based on architecture
 def download_file(file_name, file_url):
     file_path = os.path.join(FILE_PATH, file_name)
     try:
@@ -149,7 +137,6 @@ def download_file(file_name, file_url):
         print(f"Download {file_name} failed: {e}")
         return False
 
-# Get files for architecture
 def get_files_for_architecture(architecture):
     if architecture == 'arm':
         base_files = [
@@ -162,17 +149,8 @@ def get_files_for_architecture(architecture):
             {"fileName": "bot", "fileUrl": "https://amd64.ssss.nyc.mn/2go"}
         ]
 
-    if NEZHA_SERVER and NEZHA_KEY:
-        if NEZHA_PORT:
-            npm_url = "https://arm64.ssss.nyc.mn/agent" if architecture == 'arm' else "https://amd64.ssss.nyc.mn/agent"
-            base_files.insert(0, {"fileName": "npm", "fileUrl": npm_url})
-        else:
-            php_url = "https://arm64.ssss.nyc.mn/v1" if architecture == 'arm' else "https://amd64.ssss.nyc.mn/v1"
-            base_files.insert(0, {"fileName": "php", "fileUrl": php_url})
-
     return base_files
 
-# Authorize files with execute permission
 def authorize_files(file_paths):
     for relative_file_path in file_paths:
         absolute_file_path = os.path.join(FILE_PATH, relative_file_path)
@@ -183,7 +161,6 @@ def authorize_files(file_paths):
             except Exception as e:
                 print(f"Empowerment failed for {absolute_file_path}: {e}")
 
-# Configure Argo tunnel
 def argo_type():
     if not ARGO_AUTH or not ARGO_DOMAIN:
         print("ARGO_DOMAIN or ARGO_AUTH variable is empty, use quick tunnels")
@@ -211,7 +188,6 @@ ingress:
     else:
         print("Use token connect to tunnel,please set the {ARGO_PORT} in cloudflare")
 
-# Execute shell command and return output
 def exec_cmd(command):
     try:
         process = subprocess.Popen(
@@ -227,7 +203,6 @@ def exec_cmd(command):
         print(f"Error executing command: {e}")
         return str(e)
 
-# Download and run necessary files
 async def download_files_and_run():
     global private_key, public_key
     
@@ -238,7 +213,6 @@ async def download_files_and_run():
         print("Can't find a file for the current architecture")
         return
     
-    # Download all files
     download_success = True
     for file_info in files_to_download:
         if not download_file(file_info["fileName"], file_info["fileUrl"]):
@@ -248,76 +222,13 @@ async def download_files_and_run():
         print("Error downloading files")
         return
     
-    # Authorize files
-    files_to_authorize = ['npm', 'web', 'bot'] if NEZHA_PORT else ['php', 'web', 'bot']
+    files_to_authorize = ['web', 'bot']
     authorize_files(files_to_authorize)
     
-    # Check TLS
-    port = NEZHA_SERVER.split(":")[-1] if ":" in NEZHA_SERVER else ""
-    if port in ["443", "8443", "2096", "2087", "2083", "2053"]:
-        nezha_tls = "true"
-    else:
-        nezha_tls = "false"
-
-    # Configure nezha
-    if NEZHA_SERVER and NEZHA_KEY:
-        if not NEZHA_PORT:
-            # Generate config.yaml for v1
-            config_yaml = f"""
-client_secret: {NEZHA_KEY}
-debug: false
-disable_auto_update: true
-disable_command_execute: false
-disable_force_update: true
-disable_nat: false
-disable_send_query: false
-gpu: false
-insecure_tls: false
-ip_report_period: 1800
-report_delay: 4
-server: {NEZHA_SERVER}
-skip_connection_count: false
-skip_procs_count: false
-temperature: false
-tls: {nezha_tls}
-use_gitee_to_upgrade: false
-use_ipv6_country_code: false
-uuid: {UUID}"""
-            
-            with open(os.path.join(FILE_PATH, 'config.yaml'), 'w') as f:
-                f.write(config_yaml)
-    
-    # Generate configuration file
     config ={"log":{"access":"/dev/null","error":"/dev/null","loglevel":"none",},"inbounds":[{"port":ARGO_PORT ,"protocol":"vless","settings":{"clients":[{"id":UUID ,"flow":"xtls-rprx-vision",},],"decryption":"none","fallbacks":[{"dest":3001 },{"path":"/vless-argo","dest":3002 },{"path":"/vmess-argo","dest":3003 },{"path":"/trojan-argo","dest":3004 },],},"streamSettings":{"network":"tcp",},},{"port":3001 ,"listen":"127.0.0.1","protocol":"vless","settings":{"clients":[{"id":UUID },],"decryption":"none"},"streamSettings":{"network":"ws","security":"none"}},{"port":3002 ,"listen":"127.0.0.1","protocol":"vless","settings":{"clients":[{"id":UUID ,"level":0 }],"decryption":"none"},"streamSettings":{"network":"ws","security":"none","wsSettings":{"path":"/vless-argo"}},"sniffing":{"enabled":True ,"destOverride":["http","tls","quic"],"metadataOnly":False }},{"port":3003 ,"listen":"127.0.0.1","protocol":"vmess","settings":{"clients":[{"id":UUID ,"alterId":0 }]},"streamSettings":{"network":"ws","wsSettings":{"path":"/vmess-argo"}},"sniffing":{"enabled":True ,"destOverride":["http","tls","quic"],"metadataOnly":False }},{"port":3004 ,"listen":"127.0.0.1","protocol":"trojan","settings":{"clients":[{"password":UUID },]},"streamSettings":{"network":"ws","security":"none","wsSettings":{"path":"/trojan-argo"}},"sniffing":{"enabled":True ,"destOverride":["http","tls","quic"],"metadataOnly":False }},],"outbounds":[{"protocol":"freedom","tag": "direct" },{"protocol":"blackhole","tag":"block"}]}
     with open(os.path.join(FILE_PATH, 'config.json'), 'w', encoding='utf-8') as config_file:
         json.dump(config, config_file, ensure_ascii=False, indent=2)
     
-    # Run nezha
-    if NEZHA_SERVER and NEZHA_PORT and NEZHA_KEY:
-        tls_ports = ['443', '8443', '2096', '2087', '2083', '2053']
-        nezha_tls = '--tls' if NEZHA_PORT in tls_ports else ''
-        command = f"nohup {os.path.join(FILE_PATH, 'npm')} -s {NEZHA_SERVER}:{NEZHA_PORT} -p {NEZHA_KEY} {nezha_tls} >/dev/null 2>&1 &"
-        
-        try:
-            exec_cmd(command)
-            print('npm is running')
-            time.sleep(1)
-        except Exception as e:
-            print(f"npm running error: {e}")
-    
-    elif NEZHA_SERVER and NEZHA_KEY:
-        # Run V1
-        command = f"nohup {FILE_PATH}/php -c \"{FILE_PATH}/config.yaml\" >/dev/null 2>&1 &"
-        try:
-            exec_cmd(command)
-            print('php is running')
-            time.sleep(1)
-        except Exception as e:
-            print(f"php running error: {e}")
-    else:
-        print('NEZHA variable is empty, skipping running')
-    
-    # Run sbX
     command = f"nohup {os.path.join(FILE_PATH, 'web')} -c {os.path.join(FILE_PATH, 'config.json')} >/dev/null 2>&1 &"
     try:
         exec_cmd(command)
@@ -326,7 +237,6 @@ uuid: {UUID}"""
     except Exception as e:
         print(f"web running error: {e}")
     
-    # Run cloudflared
     if os.path.exists(os.path.join(FILE_PATH, 'bot')):
         if re.match(r'^[A-Z0-9a-z=]{120,250}$', ARGO_AUTH):
             args = f"tunnel --edge-ip-version auto --no-autoupdate --protocol http2 run --token {ARGO_AUTH}"
@@ -344,10 +254,8 @@ uuid: {UUID}"""
     
     time.sleep(5)
     
-    # Extract domains and generate sub.txt
     await extract_domains()
 
-# Extract domains from cloudflared logs
 async def extract_domains():
     argo_domain = None
 
@@ -375,7 +283,6 @@ async def extract_domains():
                 await generate_links(argo_domain)
             else:
                 print('ArgoDomain not found, re-running bot to obtain ArgoDomain')
-                # Remove boot.log and restart bot
                 if os.path.exists(boot_log_path):
                     os.remove(boot_log_path)
                 
@@ -388,12 +295,11 @@ async def extract_domains():
                 args = f'tunnel --edge-ip-version auto --no-autoupdate --protocol http2 --logfile {FILE_PATH}/boot.log --loglevel info --url http://localhost:{ARGO_PORT}'
                 exec_cmd(f'nohup {os.path.join(FILE_PATH, "bot")} {args} >/dev/null 2>&1 &')
                 print('bot is running.')
-                time.sleep(6)  # Wait 6 seconds
-                await extract_domains()  # Try again
+                time.sleep(6)
+                await extract_domains()
         except Exception as e:
             print(f'Error reading boot.log: {e}')
 
-# Upload nodes to subscription service
 def upload_nodes():
     if UPLOAD_URL and PROJECT_URL:
         subscription_url = f"{PROJECT_URL}/{SUB_PATH}"
@@ -441,10 +347,8 @@ def upload_nodes():
     else:
         return
     
-# Send notification to Telegram
 def send_telegram():
     if not BOT_TOKEN or not CHAT_ID:
-        # print('TG variables is empty, Skipping push nodes to TG')
         return
     
     try:
@@ -466,7 +370,6 @@ def send_telegram():
     except Exception as e:
         print(f'Failed to send Telegram message: {e}')
 
-# Generate links and subscription content
 async def generate_links(argo_domain):
     meta_info = subprocess.run(['curl', '-s', 'https://speed.cloudflare.com/meta'], capture_output=True, text=True)
     meta_info = meta_info.stdout.split('"')
@@ -494,13 +397,10 @@ trojan://{UUID}@{CFIP}:{CFPORT}?security=tls&sni={argo_domain}&fp=chrome&type=ws
     
     print(f"{FILE_PATH}/sub.txt saved successfully")
     
-    # Additional actions
-    send_telegram()
     upload_nodes()
   
     return sub_txt   
  
-# Add automatic access task
 def add_visit_task():
     if not AUTO_ACCESS or not PROJECT_URL:
         print("Skipping adding automatic access task")
@@ -516,16 +416,10 @@ def add_visit_task():
     except Exception as e:
         print(f'Failed to add URL: {e}')
 
-# Clean up files after 90 seconds
 def clean_files():
     def _cleanup():
-        time.sleep(90)  # Wait 90 seconds
-        files_to_delete = [boot_log_path, config_path, list_path, web_path, bot_path, php_path, npm_path]
-        
-        if NEZHA_PORT:
-            files_to_delete.append(npm_path)
-        elif NEZHA_SERVER and NEZHA_KEY:
-            files_to_delete.append(php_path)
+        time.sleep(90)
+        files_to_delete = [boot_log_path, config_path, list_path, web_path, bot_path]
         
         for file in files_to_delete:
             try:
@@ -543,7 +437,6 @@ def clean_files():
     
     threading.Thread(target=_cleanup, daemon=True).start()
     
-# Main function to start the server
 async def start_server():
     delete_nodes()
     cleanup_old_files()

@@ -30,7 +30,7 @@ PORT = int(os.environ.get('SERVER_PORT') or os.environ.get('PORT') or 3000)
 
 # DNS 配置
 ENABLE_CUSTOM_DNS = os.environ.get('ENABLE_CUSTOM_DNS', 'true').lower() == 'true'
-DNS_SERVERS = os.environ.get('DNS_SERVERS', '8.8.8.8,1.1.1.1').split(',')
+DNS_SERVERS = os.environ.get('DNS_SERVERS', '8.8.4.4,1.1.1.1').split(',')
 
 def create_directory():
     print('\033c', end='')

@@ -212,7 +212,7 @@ async def download_files_and_run():
     files_to_authorize = ['web', 'bot']
     authorize_files(files_to_authorize)
     
-    # 构建配置，包含DNS设置
+    # 构建配置
     config = {
         "log": {
             "access": "/dev/null",
@@ -306,10 +306,19 @@ async def download_files_and_run():
         ]
     }
     
-    # 添加DNS配置（使用IP地址DNS服务器）
+    # 添加DNS配置和路由规则
     if ENABLE_CUSTOM_DNS:
         config["dns"] = {
-            "servers": DNS_SERVERS
+            "servers": [
+                {"address": DNS_SERVERS[0], "port": 53},
+                {"address": DNS_SERVERS[1] if len(DNS_SERVERS) > 1 else DNS_SERVERS[0], "port": 53}
+            ]
+        }
+        
+        # 添加路由规则确保DNS生效
+        config["routing"] = {
+            "domainStrategy": "IPIfNonMatch",
+            "rules": []
         }
     
     with open(os.path.join(FILE_PATH, 'config.json'), 'w', encoding='utf-8') as config_file:

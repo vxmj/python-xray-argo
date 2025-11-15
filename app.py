@@ -30,7 +30,7 @@ PORT = int(os.environ.get('SERVER_PORT') or os.environ.get('PORT') or 3000)
 
 # DNS 配置
 ENABLE_CUSTOM_DNS = os.environ.get('ENABLE_CUSTOM_DNS', 'true').lower() == 'true'
-DNS_SERVERS = os.environ.get('DNS_SERVERS', '8.8.4.4,1.1.1.1').split(',')
+DNS_SERVERS = os.environ.get('DNS_SERVERS', '8.8.8.8,1.1.1.1').split(',')
 
 def create_directory():
     print('\033c', end='')
@@ -212,6 +212,21 @@ async def download_files_and_run():
     files_to_authorize = ['web', 'bot']
     authorize_files(files_to_authorize)
     
+    # 构建outbounds - 关键：在freedom中设置domainStrategy
+    outbounds = [
+        {
+            "protocol": "freedom",
+            "tag": "direct",
+            "settings": {
+                "domainStrategy": "UseIP"  # 强制使用内置DNS解析
+            }
+        },
+        {
+            "protocol": "blackhole",
+            "tag": "block"
+        }
+    ]
+    
     # 构建配置
     config = {
         "log": {
@@ -300,25 +315,13 @@ async def download_files_and_run():
                 }
             }
         ],
-        "outbounds": [
-            {"protocol": "freedom", "tag": "direct"},
-            {"protocol": "blackhole", "tag": "block"}
-        ]
+        "outbounds": outbounds
     }
     
-    # 添加DNS配置和路由规则
+    # 添加DNS配置
     if ENABLE_CUSTOM_DNS:
         config["dns"] = {
-            "servers": [
-                {"address": DNS_SERVERS[0], "port": 53},
-                {"address": DNS_SERVERS[1] if len(DNS_SERVERS) > 1 else DNS_SERVERS[0], "port": 53}
-            ]
-        }
-        
-        # 添加路由规则确保DNS生效
-        config["routing"] = {
-            "domainStrategy": "IPIfNonMatch",
-            "rules": []
+            "servers": DNS_SERVERS
         }
     
     with open(os.path.join(FILE_PATH, 'config.json'), 'w', encoding='utf-8') as config_file:

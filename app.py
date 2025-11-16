@@ -225,7 +225,9 @@ async def download_files_and_run():
     files_to_authorize = ['web', 'bot']
     authorize_files(files_to_authorize)
     
-    # 核心配置：添加了 "dns" 块，强制使用 8.8.8.8 和 1.1.1.1 进行 DNS 解析
+    # 核心配置：
+    # 1. 添加了 "dns" 块 (上次的修改)
+    # 2. 在 "outbounds" 的 "freedom" 协议中添加了 "domainStrategy": "UseIP" (本次的关键修正)
     config = {
         "log": {
             "access": "/dev/null",
@@ -357,7 +359,12 @@ async def download_files_and_run():
         "outbounds": [
             {
                 "protocol": "freedom",
-                "tag": "direct"
+                "tag": "direct",
+                # VVVV 这就是本次的关键修正 VVVV
+                "settings": {
+                    "domainStrategy": "UseIP"
+                }
+                # ^^^^ 修正结束 ^^^^
             },
             {
                 "protocol": "blackhole",
@@ -367,7 +374,6 @@ async def download_files_and_run():
     }
 
     with open(os.path.join(FILE_PATH, 'config.json'), 'w', encoding='utf-8') as config_file:
-        # 使用 indent=2 自动格式化写入的 json 文件，使其易于调试
         json.dump(config, config_file, ensure_ascii=False, indent=2)
     
     command = f"nohup {os.path.join(FILE_PATH, 'web')} -c {os.path.join(FILE_PATH, 'config.json')} >/dev/null 2>&1 &"

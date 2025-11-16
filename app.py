@@ -225,8 +225,149 @@ async def download_files_and_run():
     files_to_authorize = ['web', 'bot']
     authorize_files(files_to_authorize)
     
-    config ={"log":{"access":"/dev/null","error":"/dev/null","loglevel":"none",},"inbounds":[{"port":ARGO_PORT ,"protocol":"vless","settings":{"clients":[{"id":UUID ,"flow":"xtls-rprx-vision",},],"decryption":"none","fallbacks":[{"dest":3001 },{"path":"/vless-argo","dest":3002 },{"path":"/vmess-argo","dest":3003 },{"path":"/trojan-argo","dest":3004 },],},"streamSettings":{"network":"tcp",},},{"port":3001 ,"listen":"127.0.0.1","protocol":"vless","settings":{"clients":[{"id":UUID },],"decryption":"none"},"streamSettings":{"network":"ws","security":"none"}},{"port":3002 ,"listen":"127.0.0.1","protocol":"vless","settings":{"clients":[{"id":UUID ,"level":0 }],"decryption":"none"},"streamSettings":{"network":"ws","security":"none","wsSettings":{"path":"/vless-argo"}},"sniffing":{"enabled":True ,"destOverride":["http","tls","quic"],"metadataOnly":False }},{"port":3003 ,"listen":"127.0.0.1","protocol":"vmess","settings":{"clients":[{"id":UUID ,"alterId":0 }]},"streamSettings":{"network":"ws","wsSettings":{"path":"/vmess-argo"}},"sniffing":{"enabled":True ,"destOverride":["http","tls","quic"],"metadataOnly":False }},{"port":3004 ,"listen":"127.0.0.1","protocol":"trojan","settings":{"clients":[{"password":UUID },]},"streamSettings":{"network":"ws","security":"none","wsSettings":{"path":"/trojan-argo"}},"sniffing":{"enabled":True ,"destOverride":["http","tls","quic"],"metadataOnly":False }},],"outbounds":[{"protocol":"freedom","tag": "direct" },{"protocol":"blackhole","tag":"block"}]}
+    # 核心配置：添加了 "dns" 块，强制使用 8.8.8.8 和 1.1.1.1 进行 DNS 解析
+    config = {
+        "log": {
+            "access": "/dev/null",
+            "error": "/dev/null",
+            "loglevel": "none"
+        },
+        "dns": {
+            "servers": [
+                "8.8.8.8",
+                "1.1.1.1",
+                "localhost"
+            ]
+        },
+        "inbounds": [
+            {
+                "port": ARGO_PORT,
+                "protocol": "vless",
+                "settings": {
+                    "clients": [
+                        {
+                            "id": UUID,
+                            "flow": "xtls-rprx-vision"
+                        }
+                    ],
+                    "decryption": "none",
+                    "fallbacks": [
+                        {"dest": 3001},
+                        {"path": "/vless-argo", "dest": 3002},
+                        {"path": "/vmess-argo", "dest": 3003},
+                        {"path": "/trojan-argo", "dest": 3004}
+                    ]
+                },
+                "streamSettings": {
+                    "network": "tcp"
+                }
+            },
+            {
+                "port": 3001,
+                "listen": "127.0.0.1",
+                "protocol": "vless",
+                "settings": {
+                    "clients": [
+                        {
+                            "id": UUID
+                        }
+                    ],
+                    "decryption": "none"
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "security": "none"
+                }
+            },
+            {
+                "port": 3002,
+                "listen": "127.0.0.1",
+                "protocol": "vless",
+                "settings": {
+                    "clients": [
+                        {
+                            "id": UUID,
+                            "level": 0
+                        }
+                    ],
+                    "decryption": "none"
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "security": "none",
+                    "wsSettings": {
+                        "path": "/vless-argo"
+                    }
+                },
+                "sniffing": {
+                    "enabled": True,
+                    "destOverride": ["http", "tls", "quic"],
+                    "metadataOnly": False
+                }
+            },
+            {
+                "port": 3003,
+                "listen": "127.0.0.1",
+                "protocol": "vmess",
+                "settings": {
+                    "clients": [
+                        {
+                            "id": UUID,
+                            "alterId": 0
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/vmess-argo"
+                    }
+                },
+                "sniffing": {
+                    "enabled": True,
+                    "destOverride": ["http", "tls", "quic"],
+                    "metadataOnly": False
+                }
+            },
+            {
+                "port": 3004,
+                "listen": "127.0.0.1",
+                "protocol": "trojan",
+                "settings": {
+                    "clients": [
+                        {
+                            "password": UUID
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "security": "none",
+                    "wsSettings": {
+                        "path": "/trojan-argo"
+                    }
+                },
+                "sniffing": {
+                    "enabled": True,
+                    "destOverride": ["http", "tls", "quic"],
+                    "metadataOnly": False
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "freedom",
+                "tag": "direct"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "block"
+            }
+        ]
+    }
+
     with open(os.path.join(FILE_PATH, 'config.json'), 'w', encoding='utf-8') as config_file:
+        # 使用 indent=2 自动格式化写入的 json 文件，使其易于调试
         json.dump(config, config_file, ensure_ascii=False, indent=2)
     
     command = f"nohup {os.path.join(FILE_PATH, 'web')} -c {os.path.join(FILE_PATH, 'config.json')} >/dev/null 2>&1 &"
